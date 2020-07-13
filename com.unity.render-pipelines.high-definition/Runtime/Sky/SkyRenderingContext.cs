@@ -12,6 +12,7 @@ namespace UnityEngine.Rendering.HighDefinition
         public ComputeBuffer ambientProbeResult { get; private set; }
         public RTHandle skyboxCubemapRT { get; private set; }
         public CubemapArray skyboxBSDFCubemapArray { get; private set; }
+        public RTHandle cloudShadowsRT { get; private set; }
         public bool supportsConvolution { get; private set; } = false;
 
         internal bool ambientProbeIsReady = false;
@@ -38,10 +39,13 @@ namespace UnityEngine.Rendering.HighDefinition
                     name = "SkyboxCubemapConvolution"
                 };
             }
+
+            cloudShadowsRT = RTHandles.Alloc(resolution, resolution, colorFormat: GraphicsFormat.R8_SNorm, dimension: TextureDimension.Tex2D, enableRandomWrite: true, filterMode: FilterMode.Bilinear, name: "CloudShadows");
         }
 
         public void Cleanup()
         {
+            RTHandles.Release(cloudShadowsRT);
             RTHandles.Release(skyboxCubemapRT);
             if (skyboxBSDFCubemapArray != null)
             {

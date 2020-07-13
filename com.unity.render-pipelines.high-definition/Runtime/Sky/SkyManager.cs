@@ -153,6 +153,10 @@ namespace UnityEngine.Rendering.HighDefinition
         int                     m_ComputeAmbientProbeKernel;
         CubemapArray            m_BlackCubemapArray;
 
+        ComputeShader           m_ComputeCloudShadowsCS;
+        int                     m_ComputeCloudShadowsKernel;
+        readonly int            m_CloudShadowsOutputTextureParam = Shader.PropertyToID("_CloudShadowsOutput");
+
         // 2 by default: Static sky + one dynamic. Will grow if needed.
         DynamicArray<CachedSkyContext> m_CachedSkyContexts = new DynamicArray<CachedSkyContext>(2);
 
@@ -295,6 +299,9 @@ namespace UnityEngine.Rendering.HighDefinition
             }
 
             InitializeBlackCubemapArray();
+
+            m_ComputeCloudShadowsCS = hdrp.renderPipelineResources.shaders.computeCloudShadowsCS;
+            m_ComputeCloudShadowsKernel = m_ComputeCloudShadowsCS.FindKernel("ComputeCloudShadows");
         }
 
         void InitializeBlackCubemapArray()
@@ -743,6 +750,28 @@ namespace UnityEngine.Rendering.HighDefinition
 
                 ref CachedSkyContext cachedContext = ref m_CachedSkyContexts[skyContext.cachedSkyRenderingContextId];
                 var renderingContext = cachedContext.renderingContext;
+
+                var cloudLayer = skyContext.cloudLayer;
+                if (sunLight != null && cloudLayer != null && cloudLayer.enabled.value && cloudLayer.cloudShadows.value)
+                {
+                    using (new ProfilingScope(cmd, ProfilingSampler.Get(HDProfileId.ComputeCloudShadows)))
+                    {
+                        skyContext.cloudLayer.SetComputeParams(cmd, m_ComputeCloudShadowsCS, m_ComputeCloudShadowsKernel);
+                        cmd.SetComputeVectorParam(m_ComputeCloudShadowsCS, HDShaderIDs._SunDirection, sunLight.transform.forward);
+                        cmd.SetComputeTextureParam(m_ComputeCloudShadowsCS, m_ComputeCloudShadowsKernel, m_CloudShadowsOutputTextureParam, renderingContext.cloudShadowsRT);
+
+                        const int groupSizeX = 8;
+                        const int groupSizeY = 8;
+                        int threadGroupX = (m_Resolution + (groupSizeX - 1)) / groupSizeX;
+                        int threadGroupY = (m_Resolution + (groupSizeY - 1)) / groupSizeY;
+
+                        cmd.DispatchCompute(m_ComputeCloudShadowsCS, m_ComputeCloudShadowsKernel, threadGroupX, threadGroupY, 1);
+
+                        cmd.SetGlobalTexture(HDShaderIDs._CloudShadows, renderingContext.cloudShadowsRT);
+                    }
+                }
+                else
+                    cmd.SetGlobalTexture(HDShaderIDs._CloudShadows, TextureXR.GetBlackUIntTexture());
 
                 if (IsCachedContextValid(skyContext))
                     forceUpdate |= skyContext.skyRenderer.DoUpdate(m_BuiltinParameters);

@@ -3608,6 +3608,8 @@ namespace UnityEngine.Rendering.HighDefinition
 
             // Misc
             cb._EnableSSRefraction = hdCamera.frameSettings.IsEnabled(FrameSettingsField.Refraction) ? 1u : 0u;
+            cb._CloudShadowOpacity = hdCamera.lightingSky.cloudLayer == null ? 1.0f : 1.0f - hdCamera.lightingSky.cloudLayer.shadowOpacity.value;
+            cb._CloudShadowScale = hdCamera.lightingSky.cloudLayer == null ? 1.0f : hdCamera.lightingSky.cloudLayer.shadowScale.value;
         }
 
         void PushLightDataGlobalParams(CommandBuffer cmd)

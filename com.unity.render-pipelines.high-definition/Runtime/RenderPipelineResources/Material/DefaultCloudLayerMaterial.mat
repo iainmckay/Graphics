@@ -24,9 +24,9 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Floats:
-    - Opacity_A: 0.1
+    - Opacity_A: 0
     - Opacity_B: 1
-    - Opacity_G: 0.25
+    - Opacity_G: 0
     - Opacity_R: 1
     - Rotate: 0
     m_Colors: []

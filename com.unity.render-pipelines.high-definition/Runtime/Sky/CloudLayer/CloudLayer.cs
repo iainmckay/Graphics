@@ -43,8 +43,17 @@ namespace UnityEngine.Rendering.HighDefinition
         public ClampedFloatParameter    scrollDirection     = new ClampedFloatParameter(0.0f, 0.0f, 360.0f);
         /// <summary>Speed of the distortion.</summary>
         [Tooltip("Sets the cloud scrolling speed. The higher the value, the faster the clouds will move.")]
-        public MinFloatParameter        scrollSpeed         = new MinFloatParameter(2.0f, 0.0f);
+        public MinFloatParameter        scrollSpeed         = new MinFloatParameter(1.0f, 0.0f);
 
+        /// <summary>Enable to have cloud shadows.</summary>
+        [Tooltip("Enable or disable cloud shadows.")]
+        public BoolParameter            cloudShadows        = new BoolParameter(false);
+        /// <summary>Controls the opacity of the cloud shadows.</summary>
+        [Tooltip("Controls the opacity of the cloud shadows.")]
+        public ClampedFloatParameter    shadowOpacity      = new ClampedFloatParameter(0.5f, 0.0f, 1.0f);
+        /// <summary>Controls the scale of the cloud shadows.</summary>
+        [Tooltip("Controls the scale of the cloud shadows.")]
+        public MinFloatParameter        shadowScale        = new MinFloatParameter(500.0f, 0.0f);
 
         private float scrollFactor = 0.0f, lastTime = 0.0f;
 
@@ -102,6 +111,26 @@ namespace UnityEngine.Rendering.HighDefinition
             }
         }
 
+        internal void SetComputeParams(CommandBuffer cmd, ComputeShader cs, int kernel)
+        {
+            Vector4 cloudParam = GetParameters();
+
+            cs.EnableKeyword("USE_CLOUD_MAP");
+            cmd.SetComputeTextureParam(cs, kernel, HDShaderIDs._CloudMap, cloudMap.value);
+            cmd.SetComputeVectorParam(cs, HDShaderIDs._CloudParam, cloudParam);
+
+            if (enableDistortion.value == true)
+            {
+                cs.EnableKeyword("USE_CLOUD_MOTION");
+                if (procedural.value == true)
+                    cs.DisableKeyword("USE_CLOUD_MAP");
+                else
+                    cmd.SetComputeTextureParam(cs, kernel, HDShaderIDs._CloudFlowmap, flowmap.value);
+            }
+            else
+                cs.DisableKeyword("USE_CLOUD_MOTION");
+        }
+
         /// <summary>
         /// Returns the hash code of the HDRI sky parameters.
         /// </summary>
@@ -123,6 +152,9 @@ namespace UnityEngine.Rendering.HighDefinition
                 hash = hash * 23 + procedural.GetHashCode();
                 hash = hash * 23 + scrollDirection.GetHashCode();
                 hash = hash * 23 + scrollSpeed.GetHashCode();
+                hash = hash * 23 + cloudShadows.GetHashCode();
+                hash = hash * 23 + shadowOpacity.GetHashCode();
+                hash = hash * 23 + shadowScale.GetHashCode();
             }
 
             return hash;
