@@ -9,6 +9,9 @@ SAMPLER(sampler_CloudFlowmap);
 
 float4 _CloudParam; // x upper hemisphere only / rotation, y scroll factor, zw scroll direction (cosPhi and sinPhi)
 float4 _CloudParam2; // xyz tint, w intensity
+float4 _CloudParam3;
+float3 _SunDirection;
+float3 _SunColor;
 
 #define _CloudUpperHemisphere   _CloudParam.x > 0
 #define _CloudRotation          abs(_CloudParam.x)
@@ -24,7 +27,39 @@ float4 sampleCloud(float3 dir)
     float2 coords = GetLatLongCoords(dir, _CloudUpperHemisphere);
     coords.x = frac(coords.x + _CloudRotation);
     float4 cloudLayerColor = SAMPLE_TEXTURE2D_LOD(_CloudMap, sampler_CloudMap, coords, 0).r;
-    cloudLayerColor.rgb *= _CloudTint * _CloudIntensity * cloudLayerColor.a;
+
+    float3 sun = -_SunDirection;
+
+    float density = 1.0;
+    if (_CloudParam3.x != 0.0f)
+    {
+        float3 toSun = normalize(sun - dir);
+
+        for (int i = 0; i < 5; i++)
+        {
+            float3 p = normalize(dir + toSun * i * _CloudParam3.x);
+            coords = GetLatLongCoords(p, _CloudUpperHemisphere);
+            coords.x = frac(coords.x + _CloudRotation);
+            density *= 1.0 - SAMPLE_TEXTURE2D_LOD(_CloudMap, sampler_CloudMap, coords, 0).r;
+        }
+
+        if (_CloudParam3.z != 0)
+        {
+            density += Smootherstep01(max(dot(sun, dir) - 0.7, 0.0)) / _CloudParam3.z;
+            density -= Smootherstep01(saturate(-dot(sun, dir) - _CloudParam3.z));
+            density *= 1.0 + min(sun.y, 0.0) / _CloudParam3.z;
+        }
+        else
+        {
+            density += Smootherstep01(max(dot(sun, dir) - 0.7, 0.0)) * 5.0;
+            density -= Smootherstep01(saturate(-dot(sun, dir) - 0.2));
+            density *= 1.0 + min(sun.y, 0.0) * 5.0;
+        }
+    }
+
+    density *= _CloudParam3.y;
+    cloudLayerColor.rgb *= (_CloudTint + max(density, 0) * _SunColor) * _CloudIntensity * cloudLayerColor.a;
+
     return cloudLayerColor;
 }
 

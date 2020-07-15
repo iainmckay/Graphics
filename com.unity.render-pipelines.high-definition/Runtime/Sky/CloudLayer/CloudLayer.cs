@@ -55,6 +55,14 @@ namespace UnityEngine.Rendering.HighDefinition
         [Tooltip("Controls the scale of the cloud shadows.")]
         public MinFloatParameter        shadowScale        = new MinFloatParameter(500.0f, 0.0f);
 
+        /// <summary>Enable to have cloud lighting.</summary>
+        [Tooltip("Enable or disable cloud lighting.")]
+        public BoolParameter            cloudLighting        = new BoolParameter(false);
+        public ColorParameter           sunLightColor        = new ColorParameter(Color.white);
+        public ClampedFloatParameter        x1        = new ClampedFloatParameter(0.01f, 0.0f, 1.0f);
+        public MinFloatParameter        x2        = new MinFloatParameter(5.0f, 0.0f);
+        public ClampedFloatParameter        x3        = new ClampedFloatParameter(0.2f, 0.0f, 1.0f);
+
         private float scrollFactor = 0.0f, lastTime = 0.0f;
 
         CloudLayer()
@@ -77,7 +85,7 @@ namespace UnityEngine.Rendering.HighDefinition
         /// <summary>Sets keywords and parameters on a sky material to render the cloud layer.</summary>
         /// <param name="layer">The cloud layer to apply.</param>
         /// <param name="skyMaterial">The sky material to change.</param>
-        public static void Apply(CloudLayer layer, Material skyMaterial)
+        public static void Apply(CloudLayer layer, Material skyMaterial, Vector3 sunDir)
         {
             if (layer != null && layer.enabled.value == true)
             {
@@ -88,10 +96,16 @@ namespace UnityEngine.Rendering.HighDefinition
                 Vector4 cloudParam2 = layer.tint.value;
                 cloudParam2.w = layer.intensityMultiplier.value;
 
+                Vector4 cloudParam3 = new Vector4(layer.x1.value, layer.x2.value, layer.x3.value, 0);
+                if (!layer.cloudLighting.value) cloudParam3.y = 0.0f;
+
                 skyMaterial.EnableKeyword("USE_CLOUD_MAP");
                 skyMaterial.SetTexture(HDShaderIDs._CloudMap, layer.cloudMap.value);
                 skyMaterial.SetVector(HDShaderIDs._CloudParam, cloudParam);
                 skyMaterial.SetVector(HDShaderIDs._CloudParam2, cloudParam2);
+                skyMaterial.SetVector("_CloudParam3", cloudParam3);
+                skyMaterial.SetVector("_SunColor", layer.sunLightColor.value);
+                skyMaterial.SetVector(HDShaderIDs._SunDirection, sunDir);
 
                 if (layer.enableDistortion.value == true)
                 {

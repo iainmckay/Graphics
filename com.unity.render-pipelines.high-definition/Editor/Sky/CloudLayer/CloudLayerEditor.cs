@@ -28,6 +28,10 @@ namespace UnityEditor.Rendering.HighDefinition
         SerializedDataParameter m_ShadowOpacity;
         SerializedDataParameter m_ShadowScale;
 
+        SerializedDataParameter m_CloudLighting;
+        SerializedDataParameter m_SunLightColor;
+        SerializedDataParameter x1, x2, x3;
+
         GUIContent[]    m_DistortionModes = { new GUIContent("Procedural"), new GUIContent("Flowmap") };
         int[]           m_DistortionModeValues = { 1, 0 };
 
@@ -54,6 +58,13 @@ namespace UnityEditor.Rendering.HighDefinition
             m_CloudShadows              = Unpack(o.Find(x => x.cloudShadows));
             m_ShadowOpacity             = Unpack(o.Find(x => x.shadowOpacity));
             m_ShadowScale               = Unpack(o.Find(x => x.shadowScale));
+
+
+            m_CloudLighting             = Unpack(o.Find(x => x.cloudLighting));
+            m_SunLightColor             = Unpack(o.Find(x => x.sunLightColor));
+            x1               = Unpack(o.Find(x => x.x1));
+            x2               = Unpack(o.Find(x => x.x2));
+            x3               = Unpack(o.Find(x => x.x3));
 
             CreateEditor(m_CloudMap);
         }
@@ -135,6 +146,17 @@ namespace UnityEditor.Rendering.HighDefinition
                 EditorGUI.indentLevel++;
                 PropertyField(m_ShadowOpacity, new GUIContent("Opacity"));
                 PropertyField(m_ShadowScale, new GUIContent("Scale"));
+                EditorGUI.indentLevel--;
+            }
+
+            PropertyField(m_CloudLighting, new GUIContent("Enable Cloud Lighting"));
+            if (m_CloudLighting.value.boolValue)
+            {
+                EditorGUI.indentLevel++;
+                PropertyField(m_SunLightColor);
+                PropertyField(x2, new GUIContent("Sun Intensity"));
+                PropertyField(x1, new GUIContent("Raymarch distance"));
+                PropertyField(x3, new GUIContent("A multiplier"));
                 EditorGUI.indentLevel--;
             }
 

@@ -12,8 +12,6 @@
 
 RW_TEXTURE2D(float, _CloudShadowsOutput);
 
-float3 _SunDirection;
-
 static const int res = 256;
 static float3 tangent;
 static float3 bitangent;
